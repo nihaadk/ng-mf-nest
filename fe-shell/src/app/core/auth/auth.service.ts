@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface PublicUser {
   id: string;
@@ -28,6 +29,7 @@ const TOKEN_STORAGE_KEY = 'auth_token';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
 
   private readonly token = signal<string | null>(this.readStoredToken());
   private readonly user = signal<PublicUser | null>(null);
@@ -36,7 +38,7 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.token() !== null);
 
   login(credentials: LoginCredentials): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>('/auth/login', credentials).pipe(
+    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
       tap((response) => this.setSession(response))
     );
   }
@@ -44,7 +46,7 @@ export class AuthService {
   logout(): void {
     const token = this.token();
     if (token) {
-      this.http.post('/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } }).subscribe();
+      this.http.post(`${this.apiUrl}/auth/logout`, {}, { headers: { Authorization: `Bearer ${token}` } }).subscribe();
     }
     this.clearSession();
   }
@@ -53,7 +55,7 @@ export class AuthService {
   loadCurrentUser(): Observable<PublicUser> {
     const token = this.token();
     return this.http
-      .get<PublicUser>('/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .get<PublicUser>(`${this.apiUrl}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       .pipe(tap((user) => this.user.set(user)));
   }
 

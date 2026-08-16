@@ -2,12 +2,11 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm",
-    "analytics": false
+    "packageManager": "npm"
   },
   "newProjectRoot": "projects",
   "projects": {
-    "fe-shell": {
+    "fe-mfe-1": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -43,13 +42,7 @@
                   "maximumError": "8kB"
                 }
               ],
-              "outputHashing": "all",
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ]
+              "outputHashing": "all"
             },
             "development": {
               "optimization": false,
@@ -61,15 +54,12 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "proxyConfig": "proxy.conf.json"
-          },
           "configurations": {
             "production": {
-              "buildTarget": "fe-shell:build:production"
+              "buildTarget": "fe-mfe-1:build:production"
             },
             "development": {
-              "buildTarget": "fe-shell:build:development"
+              "buildTarget": "fe-mfe-1:build:development"
             }
           },
           "defaultConfiguration": "development"
