@@ -1,46 +1,91 @@
 # ng-mf-nest
 
-Monorepo mit drei Apps:
+Monorepo with three apps:
 
-- **be-shell** – NestJS Backend
-- **fe-shell** – Angular Frontend, Shell/Host für Microfrontends
-- **fe-mfe-1** – Angular Microfrontend, wird von fe-shell zur Laufzeit per [Native Federation](https://native-federation.com/) nachgeladen
+- **be-shell** – NestJS backend
+- **fe-shell** – Angular frontend, shell/host for microfrontends
+- **fe-mfe-1** – Angular microfrontend, loaded at runtime by fe-shell via [Native Federation](https://native-federation.com/)
 
-## Microfrontend-Architektur (Native Federation)
+## Microfrontend architecture (Native Federation)
 
-`fe-shell` und `fe-mfe-1` sind zwei unabhängige Angular-Apps mit eigenem `package.json`/`node_modules` – es gibt keinen gemeinsamen Build. `fe-shell` lädt `fe-mfe-1` erst im Browser nach, gesteuert über die lazy Route `/mfe-1` (`loadRemoteModule('mfe-1', './Component')`, siehe `fe-shell/src/app/app.routes.ts`).
+`fe-shell` and `fe-mfe-1` are two independent Angular apps with their own `package.json`/`node_modules` — there is no shared build. `fe-shell` only loads `fe-mfe-1` in the browser, driven by the lazy route `/mfe-1` (`loadRemoteModule('mfe-1', './Component')`, see `fe-shell/src/app/app.routes.ts`).
 
-Welche URL für welchen Remote geladen wird, steht in `fe-shell/public/federation.manifest.json` (Dev: `http://localhost:4201/remoteEntry.json`). Für den Prod-Build wird diese Datei im Dockerfile durch `federation.manifest.prod.json` ersetzt, die auf die öffentliche Railway-Domain von `fe-mfe-1` zeigt (aktuell ein Platzhalter – nach dem ersten Deploy von `fe-mfe-1` dort die echte Domain eintragen).
+Which URL is loaded for which remote is defined in `fe-shell/public/federation.manifest.json` (dev: `http://localhost:4201/remoteEntry.json`). For the prod build, this file is replaced in the Dockerfile by `federation.manifest.prod.json`, which points to the public Railway domain of `fe-mfe-1` (currently a placeholder — update it with the real domain after the first deploy of `fe-mfe-1`).
 
-**Lokal starten** (drei Terminals):
+**Local start** (three terminals):
 
 ```bash
 cd be-shell && npm run start:dev    # http://localhost:3000
-cd fe-mfe-1 && npm start            # http://localhost:4201 (Remote)
-cd fe-shell && npm start            # http://localhost:4200 (Shell) – dann /mfe-1 öffnen
+cd fe-mfe-1 && npm start            # http://localhost:4201 (remote)
+cd fe-shell && npm start            # http://localhost:4200 (shell) – then open /mfe-1
 ```
 
-`fe-mfe-1` muss laufen, *bevor* `/mfe-1` in `fe-shell` aufgerufen wird, sonst schlägt der Fetch von `remoteEntry.json` fehl.
+`fe-mfe-1` must be running *before* `/mfe-1` is opened in `fe-shell`, otherwise the fetch of `remoteEntry.json` fails.
 
-## Mock-Daten
+## Deployment (Railway)
 
-Die Auth im Backend (`be-shell/src/auth/auth.service.ts`) ist komplett gemockt: keine echte DB, kein echtes JWT, alles liegt nur im Arbeitsspeicher des Prozesses und geht bei jedem Neustart/Redeploy verloren.
+Each of the three apps is its own Railway service with its own `railway.json` in its respective folder:
 
-**Vordefinierter Demo-User** (zum Einloggen im Frontend nutzen, wird auch dort als Hinweis angezeigt):
+| App | Builder | Start |
+|---|---|---|
+| `be-shell` | Nixpacks (`railway.json`) | `npm run start:prod` (`node dist/main`) |
+| `fe-shell` | Docker (`Dockerfile`) | `serve -s browser -l $PORT` |
+| `fe-mfe-1` | Docker (`Dockerfile`) | `serve -s browser -l $PORT --cors` |
 
-| E-Mail | Passwort |
+### 1. Create three services
+
+Create three services from this repo in the same Railway project, each with its Root Directory set to the matching folder:
+
+- Service `be-shell` → Root Directory `be-shell`
+- Service `fe-shell` → Root Directory `fe-shell`
+- Service `fe-mfe-1` → Root Directory `fe-mfe-1`
+
+Railway automatically picks up the respective `railway.json` per service and builds/deploys the three apps independently.
+
+### 2. Order: backend + remote first, then the shell
+
+`fe-shell` has the URLs of `be-shell` (API) and `fe-mfe-1` (remote) baked in **at build time** (no runtime env var lookup in the browser). Therefore:
+
+1. Deploy **`be-shell`** → generate a public domain (Railway → Settings → Networking → *Generate Domain*).
+2. Deploy **`fe-mfe-1`** → also generate a public domain.
+3. If the generated domains differ from the previous assumptions, update them in `fe-shell`:
+   - `fe-shell/src/environments/environment.prod.ts` → `apiUrl` to the `be-shell` domain
+   - `fe-shell/public/federation.manifest.prod.json` → `"mfe-1"` to `https://<fe-mfe-1-domain>/remoteEntry.json`
+
+   then commit and push.
+4. Deploy **`fe-shell`** → generate a public domain.
+
+### 3. Env vars
+
+Set `FRONTEND_URL` on the `be-shell` service (value = the `fe-shell` domain, multiple origins comma-separated) so `app.enableCors()` in `be-shell/src/main.ts` allows the shell's domain. Without `FRONTEND_URL` set, `be-shell` currently allows all origins (`origin: true`) — for real production use, the variable should be set.
+
+`fe-mfe-1` and `fe-shell` don't need any env vars — `PORT` is injected automatically by Railway and used in both Dockerfiles via `serve -l $PORT`.
+
+### 4. After deploying, verify
+
+- `https://<fe-shell-domain>/` loads and logging in with the demo user works (confirms `apiUrl`/CORS).
+- `https://<fe-shell-domain>/mfe-1` loads the remote widget (confirms `federation.manifest.prod.json` + `--cors` on `fe-mfe-1`).
+- Check the browser console/network tab for CORS or 404 errors when loading `remoteEntry.json`.
+
+## Mock data
+
+Auth in the backend (`be-shell/src/auth/auth.service.ts`) is completely mocked: no real DB, no real JWT, everything only lives in the process's memory and is lost on every restart/redeploy.
+
+**Predefined demo user** (use it to log in on the frontend, also shown there as a hint):
+
+| Email | Password |
 |---|---|
 | `demo@example.com` | `password123` |
 
-**Eigene Test-User anlegen:** `POST /auth/register` mit `{ "email": string, "password": string, "name"?: string }` legt einen zusätzlichen In-Memory-User an (nicht persistent).
+**Create your own test user:** `POST /auth/register` with `{ "email": string, "password": string, "name"?: string }` creates an additional in-memory user (not persistent).
 
-**Verfügbare Endpunkte:**
+**Available endpoints:**
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| `POST` | `/auth/register` | Neuen Mock-User anlegen |
-| `POST` | `/auth/login` | Mit E-Mail/Passwort einloggen, liefert Mock-Token |
-| `POST` | `/auth/logout` | Session/Token invalidieren (Auth erforderlich) |
-| `GET` | `/auth/me` | Eingeloggten User anhand des Tokens abrufen (Auth erforderlich) |
+| `POST` | `/auth/register` | Create a new mock user |
+| `POST` | `/auth/login` | Log in with email/password, returns a mock token |
+| `POST` | `/auth/logout` | Invalidate the session/token (auth required) |
+| `GET` | `/auth/me` | Get the logged-in user by their token (auth required) |
 
-Für geschützte Endpunkte den Token als `Authorization: Bearer <token>` Header mitschicken.
+For protected endpoints, send the token as an `Authorization: Bearer <token>` header.
