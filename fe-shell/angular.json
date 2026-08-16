@@ -15,6 +15,38 @@
       "prefix": "app",
       "architect": {
         "build": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "cacheExternalArtifacts": true,
+            "tsConfig": "tsconfig.federation.json"
+          },
+          "configurations": {
+            "production": {
+              "target": "fe-shell:esbuild:production"
+            },
+            "development": {
+              "target": "fe-shell:esbuild:development",
+              "dev": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-architects/native-federation:build",
+          "options": {
+            "target": "fe-shell:serve-original:development",
+            "tsConfig": "tsconfig.federation.json",
+            "rebuildDelay": 500,
+            "cacheExternalArtifacts": true,
+            "dev": true,
+            "devServer": true,
+            "port": 0
+          }
+        },
+        "test": {
+          "builder": "@angular/build:unit-test"
+        },
+        "esbuild": {
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
@@ -25,9 +57,8 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.css"
-            ]
+            "styles": ["src/styles.css"],
+            "polyfills": ["es-module-shims"]
           },
           "configurations": {
             "production": {
@@ -59,23 +90,21 @@
           },
           "defaultConfiguration": "production"
         },
-        "serve": {
+        "serve-original": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "proxy.conf.json",
+            "port": 4200
           },
           "configurations": {
             "production": {
-              "buildTarget": "fe-shell:build:production"
+              "buildTarget": "fe-shell:esbuild:production"
             },
             "development": {
-              "buildTarget": "fe-shell:build:development"
+              "buildTarget": "fe-shell:esbuild:development"
             }
           },
           "defaultConfiguration": "development"
-        },
-        "test": {
-          "builder": "@angular/build:unit-test"
         }
       }
     }

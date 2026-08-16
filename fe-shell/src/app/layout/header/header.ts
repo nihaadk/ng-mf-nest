@@ -27,6 +27,9 @@ import { ThemeService } from '../../core/theme/theme.service';
                 Home
               </a>
             </li>
+            <li>
+              <a routerLink="/mfe-1" routerLinkActive="menu-active">Mfe 1</a>
+            </li>
             @if (auth.isAuthenticated()) {
               <li class="px-2 py-1 text-sm text-base-content/70">
                 {{ auth.currentUser()?.name ?? auth.currentUser()?.email }}
@@ -50,6 +53,9 @@ import { ThemeService } from '../../core/theme/theme.service';
             <a routerLink="/" routerLinkActive="menu-active" [routerLinkActiveOptions]="{ exact: true }">
               Home
             </a>
+          </li>
+          <li>
+            <a routerLink="/mfe-1" routerLinkActive="menu-active">Mfe 1</a>
           </li>
           @if (auth.isAuthenticated()) {
             <li class="px-2 text-sm text-base-content/70">

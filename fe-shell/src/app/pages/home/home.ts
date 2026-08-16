@@ -1,8 +1,10 @@
 import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-home',
+  imports: [RouterLink],
   template: `
     <div class="hero min-h-[70vh] bg-base-200 px-4">
       <div class="hero-content text-center">
@@ -17,6 +19,7 @@ import { AuthService } from '../../core/auth/auth.service';
             <span class="badge badge-outline">NestJS</span>
             <span class="badge badge-outline">Native Federation</span>
           </div>
+          <a routerLink="/mfe-1" class="btn btn-sm btn-outline mb-4">View mfe-1 demo →</a>
           @if (auth.isAuthenticated()) {
             <p>
               Logged in as

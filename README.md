@@ -1,9 +1,26 @@
 # ng-mf-nest
 
-Monorepo mit zwei Apps:
+Monorepo mit drei Apps:
 
 - **be-shell** – NestJS Backend
-- **fe-shell** – Angular Frontend
+- **fe-shell** – Angular Frontend, Shell/Host für Microfrontends
+- **fe-mfe-1** – Angular Microfrontend, wird von fe-shell zur Laufzeit per [Native Federation](https://native-federation.com/) nachgeladen
+
+## Microfrontend-Architektur (Native Federation)
+
+`fe-shell` und `fe-mfe-1` sind zwei unabhängige Angular-Apps mit eigenem `package.json`/`node_modules` – es gibt keinen gemeinsamen Build. `fe-shell` lädt `fe-mfe-1` erst im Browser nach, gesteuert über die lazy Route `/mfe-1` (`loadRemoteModule('mfe-1', './Component')`, siehe `fe-shell/src/app/app.routes.ts`).
+
+Welche URL für welchen Remote geladen wird, steht in `fe-shell/public/federation.manifest.json` (Dev: `http://localhost:4201/remoteEntry.json`). Für den Prod-Build wird diese Datei im Dockerfile durch `federation.manifest.prod.json` ersetzt, die auf die öffentliche Railway-Domain von `fe-mfe-1` zeigt (aktuell ein Platzhalter – nach dem ersten Deploy von `fe-mfe-1` dort die echte Domain eintragen).
+
+**Lokal starten** (drei Terminals):
+
+```bash
+cd be-shell && npm run start:dev    # http://localhost:3000
+cd fe-mfe-1 && npm start            # http://localhost:4201 (Remote)
+cd fe-shell && npm start            # http://localhost:4200 (Shell) – dann /mfe-1 öffnen
+```
+
+`fe-mfe-1` muss laufen, *bevor* `/mfe-1` in `fe-shell` aufgerufen wird, sonst schlägt der Fetch von `remoteEntry.json` fehl.
 
 ## Mock-Daten
 
