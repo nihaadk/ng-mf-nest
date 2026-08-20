@@ -117,7 +117,46 @@ Also wire `path: ''` in `src/app/app.routes.ts` to this component, so
 `ng serve` on this app alone shows something meaningful when developed
 standalone.
 
-## 5. Wire the remote into `fe-shell`
+## 5. Support `fe-shell`'s dark mode
+
+`fe-shell`'s `ThemeService` (`fe-shell/src/app/core/theme/theme.service.ts`)
+stores the active theme by setting a `data-theme="light"` / `data-theme="dark"`
+attribute on `<html>`. That's plain DOM state, not an Angular service — so
+even though your remote is a completely separate app/build with no shared DI
+container, it can still react to it with a CSS-only selector, because the
+`<html>` element it's rendered under is the same one `fe-shell` is toggling.
+
+In your exposed component's `styles`, add a `:host-context([data-theme='dark'])`
+variant for anything that isn't already theme-neutral:
+
+```ts
+styles: `
+  .card {
+    background: #ffffff;
+    color: #1f1f28;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  :host-context([data-theme='dark']) .card {
+    background: #1f2430;
+    color: #e5e7eb;
+  }
+`,
+```
+
+`:host-context()` is Angular's supported way to match ancestor state from
+inside emulated view encapsulation (the default) — it still works even though
+the ancestor (`<html>`) belongs to a different Angular application instance
+than the component itself. See `fe-mfe-1/src/app/pages/widget/widget.ts` for
+the full reference implementation (light + dark variants for card, badge, and
+text colors).
+
+Don't reach for `window.matchMedia('(prefers-color-scheme: dark)')` instead —
+that only reflects the OS setting, not `fe-shell`'s manual toggle/localStorage
+override, so it'll be wrong whenever a user picks a theme that differs from
+their system default.
+
+## 6. Wire the remote into `fe-shell`
 
 All in the `fe-shell` project:
 
@@ -131,7 +170,7 @@ All in the `fe-shell` project:
 ```
 
 **b) Prod manifest** — `fe-shell/public/federation.manifest.prod.json`
-(placeholder domain until the real one exists, see step 8):
+(placeholder domain until the real one exists, see step 9):
 
 ```json
 {
@@ -154,7 +193,7 @@ All in the `fe-shell` project:
 `routerLink="/mfe-2"` entry in both the desktop and mobile menus, same
 pattern as the existing `/mfe-1` link.
 
-## 6. Test locally before touching Railway
+## 7. Test locally before touching Railway
 
 ```bash
 cd fe-mfe-2 && npm start     # :4202
@@ -169,8 +208,9 @@ Open `http://localhost:4200/mfe-2`. Checklist if it doesn't render:
 | `NG0203: EnvironmentInjector token injection failed` | `shared` was emptied/disabled in one of the federation configs, so two separate copies of `@angular/core` are loaded | Restore `shareAll(...)` with `@angular/core` forced shared (step 3) |
 | Nothing happens, no console error | Manifest fetch itself failed silently (`initFederation(...).catch(err => console.error(err))` swallows it and still boots the shell) | Check the Network tab for the `federation.manifest.json` / `remoteEntry.json` request, and check the console for the swallowed error |
 | Route works but page is blank/unstyled | Component relies on global Tailwind/daisyUI classes that don't exist in this remote's own build | Use self-contained component `styles` (step 4) |
+| Widget doesn't switch when the shell's dark-mode toggle is used | No `:host-context([data-theme='dark'])` variant defined, or it targets the wrong element | Add dark variants as in step 5 |
 
-## 7. Add Docker + Railway config
+## 8. Add Docker + Railway config
 
 Copy `fe-mfe-1/Dockerfile` and `fe-mfe-1/railway.json` into `fe-mfe-2/`,
 adjusting the project name:
@@ -214,7 +254,7 @@ apps:
 }
 ```
 
-## 8. Create the Railway service
+## 9. Create the Railway service
 
 Two options — pick based on how the other services in this project are set up
 (check the existing services first, see the note at the end):
@@ -254,14 +294,14 @@ silently redeploy *that* service with this app's code instead.
    explicitly to `/fe-mfe-2/railway.json` (Railway's config file lookup does
    not automatically follow Root Directory)
 
-## 9. Point `fe-shell`'s production manifest at the real domain
+## 10. Point `fe-shell`'s production manifest at the real domain
 
 After the first successful deploy of `fe-mfe-2`, check its exact generated
 domain (Railway may append a random suffix if the plain name is taken).
 Update `fe-shell/public/federation.manifest.prod.json` if it differs from the
-placeholder used in step 5, commit, and redeploy `fe-shell`.
+placeholder used in step 6, commit, and redeploy `fe-shell`.
 
-## 10. Deploy `fe-shell`
+## 11. Deploy `fe-shell`
 
 ```bash
 cd fe-shell
@@ -274,7 +314,7 @@ already be deployed and reachable *before* `/mfe-2` will work in the deployed
 shell, since the remote is fetched client-side at runtime, not bundled into
 `fe-shell`'s build.
 
-## 11. Verify in production
+## 12. Verify in production
 
 - `https://<fe-shell-domain>/mfe-2` renders the remote's component
 - Browser Network tab: `remoteEntry.json` request to the `fe-mfe-2` domain

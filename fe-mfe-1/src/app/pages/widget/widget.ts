@@ -28,6 +28,7 @@ import { Component } from '@angular/core';
       background: #ffffff;
       color: #1f1f28;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
 
     .badge {
@@ -52,6 +53,24 @@ import { Component } from '@angular/core';
       margin: 0;
       line-height: 1.5;
       color: #4b4b57;
+    }
+
+    /* Mirrors fe-shell's ThemeService, which sets data-theme on <html>. Since
+       that's plain DOM state, it's visible across the app boundary even
+       though this component ships in a separate Native Federation build. */
+    :host-context([data-theme='dark']) .card {
+      background: #1f2430;
+      border-color: #333a4a;
+      color: #e5e7eb;
+    }
+
+    :host-context([data-theme='dark']) .badge {
+      background: #2c2f6b;
+      color: #c7d2fe;
+    }
+
+    :host-context([data-theme='dark']) p {
+      color: #a8adba;
     }
   `,
 })
