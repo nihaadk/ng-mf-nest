@@ -4,7 +4,7 @@ import { Component } from '@angular/core';
   selector: 'app-widget',
   template: `
     <div class="card">
-      <span class="badge">fe-mfe-1</span>
+      <span class="badge">MFE-1</span>
       <h1>Hello from fe-mfe-1 👋</h1>
       <p>
         This card is rendered by a completely separate Angular application. It was
