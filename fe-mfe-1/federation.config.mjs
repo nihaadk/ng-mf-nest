@@ -1,7 +1,10 @@
 import { withNativeFederation, shareAll } from '@angular-architects/native-federation/config';
 
 export default withNativeFederation({
-  name: 'fe-mfe-1',
+  // Must match the manifest key in fe-shell/public/federation.manifest*.json
+  // and the remote name passed to loadRemoteModule('mfe-1', ...) — Native
+  // Federation registers the remote under THIS name, not the manifest key.
+  name: 'mfe-1',
 
   exposes: {
     './Component': './src/app/pages/widget/widget.ts',
