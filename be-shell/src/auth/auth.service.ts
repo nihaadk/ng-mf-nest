@@ -18,9 +18,9 @@ export class AuthService {
   private readonly users: MockUser[] = [
     {
       id: randomUUID(),
-      email: 'demo@example.com',
-      password: 'password123',
-      name: 'Demo User',
+      email: 'root',
+      password: 'root',
+      name: 'Root User',
     },
   ];
 

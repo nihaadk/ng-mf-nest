@@ -18,8 +18,8 @@ The login page talks to the `be-shell` backend's mock `/auth` API (see `proxy.co
 
 The backend uses an in-memory mock user — no real database or password hashing. Sign in with:
 
-- **Email:** `demo@example.com`
-- **Password:** `password123`
+- **Email:** `root`
+- **Password:** `root`
 
 ## Code scaffolding
 

@@ -75,7 +75,7 @@ Auth in the backend (`be-shell/src/auth/auth.service.ts`) is completely mocked: 
 
 | Email | Password |
 |---|---|
-| `demo@example.com` | `password123` |
+| `root` | `root` |
 
 **Create your own test user:** `POST /auth/register` with `{ "email": string, "password": string, "name"?: string }` creates an additional in-memory user (not persistent).
 
